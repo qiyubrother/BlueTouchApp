@@ -36,8 +36,9 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="InTheHand.Net.Personal">
-      <HintPath>..\..\..\..\Desktop\InTheHand.Net.Personal.dll</HintPath>
+    <Reference Include="InTheHand.Net.Personal, Version=3.3.909.0, Culture=neutral, PublicKeyToken=ea38caa273134499, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>.\InTheHand.Net.Personal.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
