@@ -39,9 +39,14 @@ namespace BlueTouchApp
             return bluetoothList;
         }
 
-        public bool ConnectTo(List<CBluetooth> blueTouchList, string blueName, string pwd)
+        public bool ConnectTo(List<CBluetooth> blueTouchList, string blueNameOrAddress, string pwd)
         {
-            var deviceAddress = blueTouchList.FirstOrDefault(x => x.blueName == blueName);
+            if (blueNameOrAddress.Contains(":"))
+            {
+                blueNameOrAddress = blueNameOrAddress.Replace(":", string.Empty);
+            }
+            var deviceAddress = blueTouchList.FirstOrDefault(x => string.Compare(x.blueName, blueNameOrAddress, true) == 0 
+            || string.Compare(x.blueAddress.ToString(), blueNameOrAddress, true) == 0);
             if (deviceAddress != null)
             {
                 try
@@ -49,8 +54,9 @@ namespace BlueTouchApp
                     client.SetPin(deviceAddress.blueAddress, pwd);
                     client.Connect(deviceAddress.blueAddress, BluetoothService.Handsfree);
                 }
-                catch
+                catch(Exception ex)
                 {
+                    Console.WriteLine($"ConnectTo.Error::{ex.Message}");
                     return false;
                 }
                 return true;
@@ -66,8 +72,9 @@ namespace BlueTouchApp
                 var s = client.GetStream();
                 s.Write(msg, 0, msg.Length);
             }
-            catch
+            catch(Exception ex)
             {
+                Console.WriteLine($"SendMessage.Error::{ex.Message}");
                 return false;
             }
             return true;
@@ -76,23 +83,66 @@ namespace BlueTouchApp
 
     public class BluetoothUserSample
     {
-        public void SendMessageToBluetooth(string blueName, string pwd, byte[] msg)
+        public CBlueToothManage ConnectToBluetooth(string blueName, string pwd, int maxConnectRetryCount = 5)
         {
             var btm = new CBlueToothManage();
-            var lst = btm.Search();
-            if (lst == null || lst.Count() == 0)
+            List<CBluetooth> lst = null;
+            int cnt = 0;
+            do
             {
-                Console.WriteLine($"指定设备不存在。");
-                return;
-            }
-            if (!btm.ConnectTo(lst, blueName, pwd))
+                if (cnt >= maxConnectRetryCount)
+                {
+                    throw new Exception($"超过最大连接次数，无法连接到蓝牙设备。");
+                }
+                Console.WriteLine("Searching...");
+                lst = btm.Search();
+                if (lst == null || lst.Count() == 0)
+                {
+                    Console.WriteLine($"指定设备不存在。");
+                    cnt++;
+                    continue;
+                }
+                Console.WriteLine($"Blue Name         BlueAddress");
+                Console.WriteLine($"----------------------------------------");
+                foreach (var item in lst)
+                {
+                    Console.WriteLine($"{item.blueName}, {item.blueAddress}");
+                }
+                if (!btm.ConnectTo(lst, blueName, pwd))
+                {
+                    Console.WriteLine($"连接失败。指定设备不存在，或密码错误。");
+                    cnt++;
+                    continue;
+                }
+
+                break;
+            } while (true);
+
+
+
+            return btm;
+        }
+
+        public void SendMessage(CBlueToothManage btm, byte[] msg, int maxSendRetryCount = 5)
+        {
+            var cnt = 0;
+            do
             {
-                Console.WriteLine($"连接失败。指定设备不存在，或密码错误。");
+                if (cnt >= maxSendRetryCount)
+                {
+                    throw new Exception($"超过最大尝试发送次数，发送失败。");
+                }
+                if (!btm.SendMessage(msg))
+                {
+                    Console.WriteLine($"向蓝牙设备发送指令失败。");
+                    cnt++;
+                }
+                else
+                {
+                    break;
+                }
             }
-            if (!btm.SendMessage(msg))
-            {
-                Console.WriteLine($"向蓝牙设备发送指令失败。");
-            }
+            while (true);
         }
     }
 }
